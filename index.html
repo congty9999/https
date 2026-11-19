@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Công cụ chuyển đổi Domain sang URL</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: #f3f4f6;
+      color: #1f2937;
+      padding: 30px 15px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+    }
+
+    .container {
+      background: #ffffff;
+      width: 100%;
+      max-width: 900px;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 28px;
+    }
+
+    h1 {
+      font-size: 22px;
+      margin-bottom: 8px;
+      color: #111827;
+      text-align: center;
+    }
+
+    p.subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .box {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .label-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 14px;
+      color: #374151;
+    }
+
+    .count-badge {
+      font-size: 12px;
+      background: #e5e7eb;
+      color: #374151;
+      padding: 2px 8px;
+      border-radius: 12px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 300px;
+      padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 14px;
+      line-height: 1.6;
+      resize: vertical;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: Consolas, Monaco, "Courier New", monospace;
+    }
+
+    textarea:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    textarea[readonly] {
+      background-color: #f9fafb;
+      color: #111827;
+    }
+
+    .actions {
+      display: flex;
+      justify-content: center;
+      gap: 12px;
+      margin-top: 22px;
+      flex-wrap: wrap;
+    }
+
+    button {
+      padding: 11px 22px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-convert {
+      background-color: #2563eb;
+      color: white;
+    }
+
+    .btn-convert:hover {
+      background-color: #1d4ed8;
+    }
+
+    .btn-copy {
+      background-color: #10b981;
+      color: white;
+    }
+
+    .btn-copy:hover {
+      background-color: #059669;
+    }
+
+    .btn-copy.copied {
+      background-color: #047857;
+    }
+
+    .btn-clear {
+      background-color: #e5e7eb;
+      color: #374151;
+    }
+
+    .btn-clear:hover {
+      background-color: #d1d5db;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Chuyển đổi Domain sang URL</h1>
+    <p class="subtitle">Nhập danh sách domain (mỗi domain 1 dòng) để thêm tự động <code>https://</code> và dấu <code>/</code> ở cuối</p>
+
+    <div class="grid">
+      <!-- Ô nhập domain -->
+      <div class="box">
+        <div class="label-row">
+          <label for="domainInput">Danh sách Domain đầu vào:</label>
+          <span class="count-badge" id="inputCount">0 dòng</span>
+        </div>
+        <textarea id="domainInput" placeholder="Ví dụ:
+google.com
+facebook.com
+vnexpress.net
+http://example.com/"></textarea>
+      </div>
+
+      <!-- Ô kết quả URL -->
+      <div class="box">
+        <div class="label-row">
+          <label for="urlOutput">Danh sách URL kết quả:</label>
+          <span class="count-badge" id="outputCount">0 URL</span>
+        </div>
+        <textarea id="urlOutput" readonly placeholder="Kết quả sẽ hiển thị ở đây:
+https://google.com/
+https://facebook.com/
+https://vnexpress.net/
+https://example.com/"></textarea>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-convert" onclick="convertDomains()">⚡ Chuyển đổi</button>
+      <button class="btn-copy" id="copyBtn" onclick="copyAllUrls()">📋 Copy All URL</button>
+      <button class="btn-clear" onclick="clearAll()">🗑️ Xóa tất cả</button>
+    </div>
+  </div>
+
+  <script>
+    const domainInput = document.getElementById('domainInput');
+    const urlOutput = document.getElementById('urlOutput');
+    const inputCount = document.getElementById('inputCount');
+    const outputCount = document.getElementById('outputCount');
+    const copyBtn = document.getElementById('copyBtn');
+
+    // Cập nhật số dòng khi người dùng nhập
+    domainInput.addEventListener('input', () => {
+      const lines = domainInput.value.split('\n').filter(line => line.trim() !== '');
+      inputCount.textContent = `${lines.length} dòng`;
+    });
+
+    // Hàm chuyển đổi domain -> https://domain/
+    function convertDomains() {
+      const rawText = domainInput.value;
+      const lines = rawText.split('\n');
+      const resultUrls = [];
+
+      for (let line of lines) {
+        let domain = line.trim();
+        if (!domain) continue; // Bỏ qua dòng trống
+
+        // Xóa http:// hoặc https:// nếu người dùng lỡ nhập sẵn
+        domain = domain.replace(/^https?:\/\//i, '');
+        // Xóa các dấu / thừa ở cuối nếu có
+        domain = domain.replace(/\/+$/, '');
+
+        if (domain) {
+          resultUrls.push(`https://${domain}/`);
+        }
+      }
+
+      urlOutput.value = resultUrls.join('\n');
+      outputCount.textContent = `${resultUrls.length} URL`;
+    }
+
+    // Hàm Copy toàn bộ URL kết quả
+    function copyAllUrls() {
+      const textToCopy = urlOutput.value;
+      if (!textToCopy.trim()) {
+        alert('Chưa có URL nào để sao chép!');
+        return;
+      }
+
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(textToCopy).then(showCopiedFeedback);
+      } else {
+        // Fallback nếu mở trực tiếp qua file:// trên một số trình duyệt cũ
+        urlOutput.select();
+        document.execCommand('copy');
+        showCopiedFeedback();
+      }
+    }
+
+    // Hiệu ứng thông báo đã copy
+    function showCopiedFeedback() {
+      const originalText = '📋 Copy All URL';
+      copyBtn.textContent = '✅ Đã copy tất cả!';
+      copyBtn.classList.add('copied');
+
+      setTimeout(() => {
+        copyBtn.textContent = originalText;
+        copyBtn.classList.remove('copied');
+      }, 2000);
+    }
+
+    // Hàm xóa dữ liệu
+    function clearAll() {
+      domainInput.value = '';
+      urlOutput.value = '';
+      inputCount.textContent = '0 dòng';
+      outputCount.textContent = '0 URL';
+    }
+  </script>
+
+</body>
+</html>
